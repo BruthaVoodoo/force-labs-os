@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import { ModuleIcon } from '@/components/icons/module-icon';
@@ -12,75 +12,21 @@ interface Brief {
   content: string;
 }
 
-const DUMMY_BRIEFS: Brief[] = [
-  {
-    id: 'brief-1',
-    date: 'March 20, 2026',
-    title: 'All systems nominal',
-    content: `# Daily Brief — March 20, 2026
-
-## Executive Summary
-All systems nominal. Three agents active, two in idle state. No critical incidents in the last 24 hours.
-
-## Security
-- Credential rotation completed at 07:50 EDT
-- All three rotated credentials verified and active
-- Git history cleanup pending (scheduled this week)
-
-## Agent Activity
-- **Revan** (main): Active, processing Force Labs build session
-- **Bastila** (isolated): Idle since 09:00 EDT
-
-## Upcoming
-- Force Labs Brain module development begins today
-- Daily brief cron job to be configured
-- Memory optimizer scheduled for nightly run
-
-## Notes
-No anomalies detected. Mission continues on schedule.`,
-  },
-  {
-    id: 'brief-2',
-    date: 'March 19, 2026',
-    title: 'Cron delivery standardized',
-    content: `# Daily Brief — March 19, 2026
-
-## Executive Summary
-Cron delivery pattern standardized across all scheduled jobs. Memory optimizer updated with new safety gates.
-
-## Completed
-- scripts/cron-deliver-telegram.sh utility created
-- Memory optimizer gates tuned (skip if delta < 10 tokens)
-- Security review cron updated with delivery pattern
-
-## Agent Activity
-- **Revan** (main): Productive session, multiple system improvements
-- **Bastila** (isolated): Not active today
-
-## Notes
-Cron delivery pattern is now the standard for all future jobs.`,
-  },
-  {
-    id: 'brief-3',
-    date: 'March 18, 2026',
-    title: 'Memory optimizer gates added',
-    content: `# Daily Brief — March 18, 2026
-
-## Executive Summary
-Memory optimizer safety gates added. QMD memory backend confirmed operational.
-
-## Completed
-- Memory optimizer updated with 3-gate safety system
-- QMD BM25 + vector hybrid search confirmed working
-- Daily memory audit cron configured
-
-## Notes
-System memory now has dual redundancy (QMD + SQLite).`,
-  },
-];
-
 export function DailyBriefs() {
-  const [selectedBrief, setSelectedBrief] = useState<Brief>(DUMMY_BRIEFS[0]);
+  const [briefs, setBriefs] = useState<Brief[]>([]);
+  const [selectedBrief, setSelectedBrief] = useState<Brief | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/brain/briefs')
+      .then(r => r.json())
+      .then((data: Brief[]) => {
+        setBriefs(data);
+        if (data.length > 0) setSelectedBrief(data[0]);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
 
   return (
     <motion.div
@@ -116,8 +62,14 @@ export function DailyBriefs() {
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.4, delay: 0.1 }}
         >
+          {loading && (
+            <div className="text-sm text-slate-400 dark:text-slate-500 px-2">Loading briefs...</div>
+          )}
+          {!loading && briefs.length === 0 && (
+            <div className="text-sm text-slate-400 dark:text-slate-500 px-2">No briefs yet. First one arrives at 9 AM.</div>
+          )}
           <div className="space-y-3">
-            {DUMMY_BRIEFS.map((brief, index) => (
+            {briefs.map((brief, index) => (
               <motion.button
                 key={brief.id}
                 onClick={() => setSelectedBrief(brief)}
@@ -128,7 +80,7 @@ export function DailyBriefs() {
                   w-full text-left p-4 rounded-lg transition-all duration-200
                   backdrop-blur-md border
                   ${
-                    selectedBrief.id === brief.id
+                    selectedBrief?.id === brief.id
                       ? 'bg-blue-500/10 dark:bg-blue-500/10 border-l-2 border-blue-500 text-blue-600 dark:text-blue-400'
                       : 'glass-card hover:bg-white/80 dark:hover:bg-slate-700/60'
                   }
@@ -138,7 +90,7 @@ export function DailyBriefs() {
                   {brief.date}
                 </div>
                 <div className={`text-xs line-clamp-2 ${
-                  selectedBrief.id === brief.id
+                  selectedBrief?.id === brief.id
                     ? 'text-blue-600 dark:text-blue-400'
                     : 'text-slate-500 dark:text-slate-400'
                 }`}>
@@ -155,8 +107,11 @@ export function DailyBriefs() {
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.4, delay: 0.1 }}
-          key={selectedBrief.id}
+          key={selectedBrief?.id ?? 'empty'}
         >
+          {!selectedBrief ? (
+            <div className="glass-card p-6 text-slate-400 dark:text-slate-500 text-sm">Select a brief from the left.</div>
+          ) : (
           <div className="glass-card p-6 h-fit">
             <div className="prose dark:prose-invert max-w-none text-slate-900 dark:text-slate-100">
               <ReactMarkdown
@@ -185,12 +140,21 @@ export function DailyBriefs() {
                   hr: ({ node, ...props }) => (
                     <hr className="border-slate-200 dark:border-slate-700/60 my-4" {...props} />
                   ),
+                  a: ({ node, ...props }) => (
+                    <a
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-500 dark:text-blue-400 hover:underline"
+                      {...props}
+                    />
+                  ),
                 }}
               >
                 {selectedBrief.content}
               </ReactMarkdown>
             </div>
           </div>
+          )}
         </motion.div>
       </div>
     </motion.div>
