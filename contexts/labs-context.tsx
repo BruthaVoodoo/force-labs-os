@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 
 export type CardStatus = 'draft' | 'queued' | 'in-progress' | 'done' | 'dismissed';
 export type CardKind = 'client' | 'idea';
@@ -15,18 +15,11 @@ export interface LabsCard {
   status: CardStatus;
   createdAt: string; // ISO date string
   tags: string[];
+  source?: string; // 'manual' | 'revan-nightly'
 }
 
-interface LabsContextValue {
-  cards: LabsCard[];
-  acceptIdea: (id: string) => void;
-  dismissIdea: (id: string) => void;
-  restoreIdea: (id: string) => void; // returns a dismissed idea back to draft
-  getQueue: () => LabsCard[]; // returns all cards with status === 'queued'
-}
-
-// --- DUMMY DATA ---
-const DUMMY_CARDS: LabsCard[] = [
+// Client work is static for now — only ideas come from the API
+const CLIENT_CARDS: LabsCard[] = [
   {
     id: 'client-001',
     kind: 'client',
@@ -37,77 +30,81 @@ const DUMMY_CARDS: LabsCard[] = [
     status: 'draft',
     createdAt: '2026-03-20T09:00:00Z',
     tags: ['client', 'dashboard', 'ui'],
-  },
-  {
-    id: 'idea-001',
-    kind: 'idea',
-    title: 'Dock Badge Notifications',
-    subtitle: 'Add live badge counts to dock icons',
-    description: `# Idea: Dock Badge Notifications\n\n## Summary\nSurface the \`badgeCounts\` already tracked in AppContext as visual badge dots on dock module icons. When a cron job errors or a new agent event fires, a red dot appears on the relevant dock icon.\n\n## Implementation Plan\n1. Add a badge overlay to each dock button in \`components/dock/dock.tsx\`\n2. Pull \`badgeCounts\` from \`useApp()\`\n3. Render a small animated dot when count > 0\n4. Clear on module focus via \`clearModuleNotifications()\`\n\n## Estimated Effort\nSmall — 1–2 hour implementation.\n\n## Why It Matters\nPassive awareness without interruption. You see something needs attention without breaking flow.`,
-    sandboxPath: '/sandbox/idea-001/index.html',
-    status: 'draft',
-    createdAt: '2026-03-20T03:00:00Z',
-    tags: ['ui', 'notifications', 'dock'],
-  },
-  {
-    id: 'idea-002',
-    kind: 'idea',
-    title: 'Agent Activity Timeline',
-    subtitle: 'Visual timeline of agent actions per session',
-    description: `# Idea: Agent Activity Timeline\n\n## Summary\nAdd a timeline view to the agent session modal showing a chronological visualization of tool calls, messages, and key events. Makes it easier to audit what happened during a long session at a glance.\n\n## Implementation Plan\n1. Parse JSONL session files for tool calls and message types\n2. Build a \`TimelineView\` component (vertical list, time-stamped)\n3. Add a "Timeline" tab to the existing agent session modal\n4. Color-code by event type: user, assistant, tool call\n\n## Estimated Effort\nMedium — 3–4 hours.\n\n## Why It Matters\nRight now the session modal is a raw chat view. A timeline makes debugging and review significantly faster.`,
-    sandboxPath: '/sandbox/idea-002/index.html',
-    status: 'draft',
-    createdAt: '2026-03-19T03:00:00Z',
-    tags: ['agents', 'ui', 'debugging'],
-  },
-  {
-    id: 'idea-003',
-    kind: 'idea',
-    title: 'Cron Health Heatmap',
-    subtitle: 'Visual history grid of cron job run results',
-    description: `# Idea: Cron Health Heatmap\n\n## Summary\nAdd a GitHub-style contribution heatmap to each cron job row showing run history. Green = success, red = error, grey = no run. Gives instant health overview without opening drawers.\n\n## Implementation Plan\n1. Extend \`/api/crons\` route to include run history per job\n2. Build a \`MiniHeatmap\` component (7×N grid, last 28 days)\n3. Embed in the cron jobs table row\n4. Tooltip on hover showing date + status\n\n## Estimated Effort\nMedium — depends on run history API availability.\n\n## Why It Matters\nRight now you only see the last run. A heatmap surfaces intermittent failures immediately.`,
-    sandboxPath: '/sandbox/idea-003/index.html',
-    status: 'draft',
-    createdAt: '2026-03-18T03:00:00Z',
-    tags: ['crons', 'monitoring', 'ui'],
+    source: 'manual',
   },
 ];
 
+interface LabsContextValue {
+  cards: LabsCard[];
+  acceptIdea: (id: string) => void;
+  dismissIdea: (id: string) => void;
+  restoreIdea: (id: string) => void;
+  getQueue: () => LabsCard[];
+  loading: boolean;
+}
+
 const LabsContext = createContext<LabsContextValue>({
-  cards: DUMMY_CARDS,
+  cards: CLIENT_CARDS,
   acceptIdea: () => {},
   dismissIdea: () => {},
   restoreIdea: () => {},
   getQueue: () => [],
+  loading: false,
 });
 
 export function LabsProvider({ children }: { children: ReactNode }) {
-  const [cards, setCards] = useState<LabsCard[]>(DUMMY_CARDS);
+  const [ideas, setIdeas] = useState<LabsCard[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Load ideas from API on mount
+  useEffect(() => {
+    fetch('/api/labs/ideas')
+      .then(r => r.json())
+      .then((data: LabsCard[]) => {
+        setIdeas(data);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
+
+  const patchStatus = useCallback(async (id: string, status: CardStatus) => {
+    await fetch('/api/labs/ideas', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, status }),
+    }).catch(console.error);
+  }, []);
 
   const acceptIdea = useCallback((id: string) => {
-    setCards(prev => prev.map(c =>
-      c.id === id && c.kind === 'idea' ? { ...c, status: 'queued' } : c
-    ));
-  }, []);
+    setIdeas(prev => prev.map(c => c.id === id ? { ...c, status: 'queued' } : c));
+    patchStatus(id, 'queued');
+  }, [patchStatus]);
 
   const dismissIdea = useCallback((id: string) => {
-    setCards(prev => prev.map(c =>
-      c.id === id && c.kind === 'idea' ? { ...c, status: 'dismissed' } : c
-    ));
-  }, []);
+    setIdeas(prev => prev.map(c => c.id === id ? { ...c, status: 'dismissed' } : c));
+    patchStatus(id, 'dismissed');
+  }, [patchStatus]);
 
   const restoreIdea = useCallback((id: string) => {
-    setCards(prev => prev.map(c =>
-      c.id === id && c.kind === 'idea' && c.status === 'dismissed' ? { ...c, status: 'draft' } : c
+    setIdeas(prev => prev.map(c =>
+      c.id === id && c.status === 'dismissed' ? { ...c, status: 'draft' } : c
     ));
-  }, []);
+    patchStatus(id, 'draft');
+  }, [patchStatus]);
 
   const getQueue = useCallback(() => {
-    return cards.filter(c => c.status === 'queued');
-  }, [cards]);
+    return [...CLIENT_CARDS, ...ideas].filter(c => c.status === 'queued');
+  }, [ideas]);
 
   return (
-    <LabsContext.Provider value={{ cards, acceptIdea, dismissIdea, restoreIdea, getQueue }}>
+    <LabsContext.Provider value={{
+      cards: [...CLIENT_CARDS, ...ideas],
+      acceptIdea,
+      dismissIdea,
+      restoreIdea,
+      getQueue,
+      loading,
+    }}>
       {children}
     </LabsContext.Provider>
   );
