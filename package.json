@@ -1,0 +1,40 @@
+{
+  "name": "force-labs",
+  "version": "1.0.0",
+  "description": "Force Labs Control System - macOS-inspired React application",
+  "main": "index.js",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start -p 5000",
+    "lint": "next lint",
+    "docker:build": "docker build -t force-labs:latest .",
+    "docker:run": "docker run -p 5000:5000 force-labs:latest",
+    "docker:compose:up": "docker-compose up -d",
+    "docker:compose:down": "docker-compose down"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "clsx": "^2.0.0",
+    "cronstrue": "^3.14.0",
+    "framer-motion": "^10.16.0",
+    "lucide-react": "^0.577.0",
+    "next": "latest",
+    "next-themes": "^0.4.6",
+    "react": "latest",
+    "react-dom": "latest",
+    "react-markdown": "^10.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
+    "autoprefixer": "^10.4.0",
+    "postcss": "^8.4.0",
+    "tailwindcss": "^3.3.0",
+    "typescript": "^5.0.0"
+  }
+}

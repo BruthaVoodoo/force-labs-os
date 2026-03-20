@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Idea: Agent Activity Timeline</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0f172a; color: #e2e8f0; font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; gap: 16px; padding: 24px; }
+    .badge { background: #1e3a5f; border: 1px solid #2563eb44; border-radius: 6px; padding: 4px 12px; font-size: 12px; color: #60a5fa; letter-spacing: 0.05em; text-transform: uppercase; }
+    h1 { font-size: 22px; font-weight: 700; color: #f1f5f9; text-align: center; }
+    p { color: #64748b; font-size: 13px; max-width: 340px; text-align: center; line-height: 1.6; }
+    .timeline { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; width: 100%; max-width: 300px; }
+    .event { display: flex; gap: 8px; padding: 8px; background: #1e293b; border-left: 2px solid #3b82f6; border-radius: 4px; font-size: 12px; }
+    .event.user { border-left-color: #8b5cf6; }
+    .event.tool { border-left-color: #ec4899; }
+    .time { color: #64748b; font-size: 11px; white-space: nowrap; }
+    .label { color: #a1a5b4; flex: 1; }
+  </style>
+</head>
+<body>
+  <span class="badge">Concept Preview</span>
+  <h1>Agent Activity Timeline</h1>
+  <p>Visual concept — chronological view of all session events with type-coding.</p>
+  <div class="timeline">
+    <div class="event user">
+      <div class="time">14:08</div>
+      <div class="label">User: "List all agents"</div>
+    </div>
+    <div class="event tool">
+      <div class="time">14:08</div>
+      <div class="label">Tool: agents-list (took 245ms)</div>
+    </div>
+    <div class="event">
+      <div class="time">14:08</div>
+      <div class="label">Assistant: Response generated</div>
+    </div>
+    <div class="event user">
+      <div class="time">14:09</div>
+      <div class="label">User: "Check Revan status"</div>
+    </div>
+    <div class="event tool">
+      <div class="time">14:09</div>
+      <div class="label">Tool: agents-query (took 156ms)</div>
+    </div>
+  </div>
+</body>
+</html>

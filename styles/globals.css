@@ -1,0 +1,86 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  html.dark {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-50 transition-colors duration-300;
+    font-family: 'Orbitron', 'Orbitron Fallback', sans-serif !important;
+    letter-spacing: 0.06em;
+  }
+
+  *, *::before, *::after {
+    font-family: 'Orbitron', 'Orbitron Fallback', sans-serif !important;
+  }
+
+  /* Smooth scrollbar */
+  ::-webkit-scrollbar {
+    @apply w-2;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-slate-300 dark:bg-slate-700 rounded-full hover:bg-slate-400 dark:hover:bg-slate-600;
+  }
+}
+
+/* Glassmorphism + Neumorphism blend */
+.glass-effect {
+  @apply backdrop-blur-md bg-white/60 dark:bg-slate-800/40 border border-white/40 dark:border-white/10;
+}
+
+/* True glassmorphism card — no shadows, just blur + transparency */
+.glass-card {
+  @apply backdrop-blur-md bg-white/50 dark:bg-slate-800/30
+         border border-white/50 dark:border-white/10
+         rounded-2xl;
+}
+
+/* Kept for any legacy use but strip shadows */
+.neuro-surface {
+  @apply glass-card;
+}
+
+/* Smooth fade-in animation */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+/* Smooth scale animation for buttons */
+@keyframes button-press {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0.95);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.active-press {
+  animation: button-press 0.2s ease-out;
+}
