@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ModuleIcon } from '@/components/icons/module-icon';
+import { useApp } from '@/contexts/app-context';
+import type { ModuleId } from '@/contexts/app-context';
 
 interface DockProps {
   activeModule: 'ops' | 'brain' | 'labs';
@@ -33,10 +35,16 @@ const MODULES = [
 export function Dock({ activeModule, onModuleSelect }: DockProps) {
   const [mounted, setMounted] = useState(false);
   const [hoveredModule, setHoveredModule] = useState<string | null>(null);
+  const { badgeCounts, clearModuleNotifications } = useApp();
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  function handleModuleSelect(moduleId: ModuleId) {
+    clearModuleNotifications(moduleId);
+    onModuleSelect(moduleId);
+  }
 
   if (!mounted) return null;
 
@@ -56,7 +64,7 @@ export function Dock({ activeModule, onModuleSelect }: DockProps) {
           {MODULES.map((module) => (
             <div key={module.id} className="relative flex flex-col items-center">
               <motion.button
-                onClick={() => onModuleSelect(module.id as 'ops' | 'brain' | 'labs')}
+                onClick={() => handleModuleSelect(module.id as ModuleId)}
                 onHoverStart={() => setHoveredModule(module.id)}
                 onHoverEnd={() => setHoveredModule(null)}
                 whileHover={{ scale: 1.1, y: -2 }}
@@ -76,6 +84,21 @@ export function Dock({ activeModule, onModuleSelect }: DockProps) {
                     className="w-8 h-8"
                   />
                 </div>
+
+                {/* Badge dot */}
+                <AnimatePresence>
+                  {badgeCounts[module.id as ModuleId] > 0 && (
+                    <motion.span
+                      key="badge"
+                      initial={{ opacity: 0, scale: 0.5 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.5 }}
+                      transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                      className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full ring-2 ring-white dark:ring-slate-900 animate-pulse"
+                      aria-label={`${badgeCounts[module.id as ModuleId]} notification${badgeCounts[module.id as ModuleId] !== 1 ? 's' : ''}`}
+                    />
+                  )}
+                </AnimatePresence>
 
                 {/* Label and description tooltip on hover */}
                 {hoveredModule === module.id && (
